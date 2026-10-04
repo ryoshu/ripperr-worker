@@ -104,3 +104,14 @@ def test_work_one_uploads_reports_failures_and_drops_lost_leases():
     assert work_one(client, FakeModels(), _settings(), quiet) is True  # dropped, loop goes on
     with pytest.raises(HTTPError):
         work_one(FakeClient(result_error=500), FakeModels(), _settings(), quiet)
+
+
+def test_senko_is_pinned_to_a_commit():
+    import re
+    import tomllib
+    from pathlib import Path
+
+    pyproject = Path(__file__).parent.parent / "pyproject.toml"
+    deps = tomllib.loads(pyproject.read_text())["project"]["optional-dependencies"]["apple"]
+    senko = next(d for d in deps if d.startswith("senko"))
+    assert re.search(r"git\+https://\S+@[0-9a-f]{40}$", senko), senko
