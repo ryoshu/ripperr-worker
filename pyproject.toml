@@ -6,10 +6,11 @@ requires-python = ">=3.11,<3.14"  # Senko needs Python below 3.14
 dependencies = []  # the protocol client is stdlib; the models come from an extra
 
 [project.optional-dependencies]
-apple = [
-    "mlx-whisper>=0.4",
+apple = ["mlx-whisper>=0.4", "ripperr-worker[senko]"]
+senko = [
     # Same pinned commit ripperr was tested against; its output shape has
-    # changed between versions (see diarize.normalize_segments).
+    # changed between versions (see diarize.normalize_segments). On Linux it
+    # builds a C++ extension and runs CAM++ on CPU with the same weights.
     "senko @ git+https://github.com/narcotic-sh/senko.git@1bcb09041bfa170b4a5a4b0af92f66eff76204d5",
 ]
 linux = [

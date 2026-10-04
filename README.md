@@ -46,8 +46,12 @@ Run the tests with `uv pip install pytest && python -m pytest tests`.
 
 ## Docker on an always-on host
 
-The CPU image targets Linux/amd64 and includes faster-whisper, pyannote, and
-the optional Whistle backend. The Compose defaults select Whistle; set
+The CPU image targets Linux/amd64 and includes faster-whisper, pyannote,
+Senko, and the optional Whistle backend. The Compose defaults select Whistle
+for ASR and Senko for diarization. Senko runs CAM++ on CPU with the same
+weights as the Mac's CoreML path, so its speaker embeddings land in
+ripperr's `senko-campplus` space and feed speaker profiles; pyannote sends no
+embeddings. Set
 `RIPPERR_ASR_BACKEND=faster-whisper` in `.env` to use the existing Linux ASR
 instead. Whistle processes WAV audio in overlapping 30-second windows and
 stitches word timestamps back onto the episode timeline. A custom
@@ -59,7 +63,7 @@ On the Mac Pro, use the Docker CLI connected to its Colima engine:
 ```bash
 cp .env.docker.example .env
 chmod 600 .env
-# Edit .env with the ripperr worker token and Hugging Face token.
+# Edit .env with the ripperr worker token (and a Hugging Face token for pyannote).
 /opt/local/bin/docker compose build
 /opt/local/bin/docker compose up -d
 /opt/local/bin/docker compose logs -f worker
@@ -73,7 +77,8 @@ named `ripperr-worker`, so its lifecycle is separate from other Compose
 projects such as the existing PostgreSQL service. `docker compose down` keeps
 the cache; `docker compose down -v` deletes it.
 
-The deployment needs a Ripperr worker API token and a Hugging Face token that
-can access `pyannote/speaker-diarization-community-1`. Keep those values only
+The deployment needs a Ripperr worker API token, plus a Hugging Face token
+that can access `pyannote/speaker-diarization-community-1` only when
+`RIPPERR_DIARIZATION_BACKEND=pyannote`. Keep those values only
 in the local `.env` file. The Compose service is limited to three CPUs and 6 GB
 of memory to leave room for other containers on a small Colima VM.

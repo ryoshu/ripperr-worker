@@ -199,6 +199,6 @@ def test_senko_is_pinned_to_a_commit():
     from pathlib import Path
 
     pyproject = Path(__file__).parent.parent / "pyproject.toml"
-    deps = tomllib.loads(pyproject.read_text())["project"]["optional-dependencies"]["apple"]
+    deps = tomllib.loads(pyproject.read_text())["project"]["optional-dependencies"]["senko"]
     senko = next(d for d in deps if d.startswith("senko"))
     assert re.search(r"git\+https://\S+@[0-9a-f]{40}$", senko), senko
