@@ -12,6 +12,8 @@ services:
       HOME: /models/home
       HF_HOME: /models/home/.cache/huggingface
       NEEDLE_TELEMETRY: "0"
+      # The Colima CPU has no NNPACK; torch logs a warning for every conv without this.
+      TORCH_CPP_LOG_LEVEL: ERROR
       RIPPERR_SERVER: ${RIPPERR_SERVER:?Set RIPPERR_SERVER in .env}
       RIPPERR_API_TOKEN: ${RIPPERR_API_TOKEN:?Set RIPPERR_API_TOKEN in .env}
       RIPPERR_HF_TOKEN: ${RIPPERR_HF_TOKEN:-}
