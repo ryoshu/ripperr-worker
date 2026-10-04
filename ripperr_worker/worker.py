@@ -76,7 +76,7 @@ class Models:
 
     def transcribe(self, wav: Path) -> dict[str, Any]:
         s = self.settings
-        return asr.transcribe(wav, s.asr_model, s.language, s.asr_backend, s.device)
+        return asr.transcribe(wav, s.asr_model, s.language, s.asr_backend, s.device, s.asr_keywords)
 
     def diarize(self, wav: Path) -> tuple[list[dict[str, Any]], dict[str, list[float]] | None]:
         if self.diarizer.backend == "senko":

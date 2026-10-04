@@ -16,6 +16,7 @@ linux = [
     "faster-whisper>=1.1",
     "pyannote.audio>=3.3",
 ]
+whistle = ["cactus-needle==3.1.0"]
 
 [project.scripts]
 ripperr-worker = "ripperr_worker.worker:main"

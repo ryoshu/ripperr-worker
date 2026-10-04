@@ -28,6 +28,93 @@ def test_unknown_backend_is_explicit():
         diarize.backend_name("nope")
 
 
+def test_whistle_config_and_keywords(monkeypatch):
+    monkeypatch.setenv("RIPPERR_ASR_KEYWORDS", "Ben Johnson, Kalif Raymond\nDetroit Lions")
+    settings = Settings(asr_backend="whistle", diarization_backend="pyannote")
+    assert settings.asr_model == config.WHISTLE_MODEL
+    assert settings.asr_keywords == ["Ben Johnson", "Kalif Raymond", "Detroit Lions"]
+    assert settings.asr_config() == {
+        "backend": "whistle", "runtime": config.runtime_version("cactus-needle"),
+        "model": config.WHISTLE_MODEL, "device": "auto", "language": None,
+        "keywords": ["Ben Johnson", "Kalif Raymond", "Detroit Lions"],
+    }
+
+
+def test_whistle_chunks_and_stitches_overlaps(tmp_path, monkeypatch):
+    import sys
+    import wave
+
+    calls = []
+
+    def fake_transcribe(path, **kwargs):
+        with wave.open(path, "rb") as audio:
+            duration = audio.getnframes() / audio.getframerate()
+        calls.append((duration, kwargs))
+        words = [{"start": 0.5, "end": 0.8, "word": "overlap"}]
+        if duration > 2:
+            words.append({"start": 1.5, "end": 1.8, "word": "owned"})
+        if duration >= 30:
+            words.append({"start": 29.5, "end": 29.8, "word": "tail"})
+        return {"text": "fake", "words": words}
+
+    monkeypatch.setitem(sys.modules, "needle", SimpleNamespace(transcribe=fake_transcribe))
+    wav_path = tmp_path / "hour.wav"
+    with wave.open(str(wav_path), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(16000)
+        out.writeframes(b"\0\0" * (60 * 16000))
+
+    result = asr._whistle(wav_path, config.WHISTLE_MODEL, "en", "cpu", ["Detroit Lions"])
+    assert [duration for duration, _ in calls] == [30, 30, 4]
+    assert [word["word"] for word in result["segments"][0]["words"]] == [
+        "overlap", "owned", "owned", "owned",
+    ]
+    assert [word["start"] for word in result["segments"][0]["words"]] == [0.5, 1.5, 29.5, 57.5]
+    assert all(kwargs["word_timestamps"] for _, kwargs in calls)
+    assert all(kwargs["keywords"] == ["Detroit Lions"] for _, kwargs in calls)
+
+
+def test_whistle_requires_timestamped_words(tmp_path, monkeypatch):
+    import sys
+    import wave
+
+    monkeypatch.setitem(sys.modules, "needle", SimpleNamespace(
+        transcribe=lambda *args, **kwargs: {"text": "lost timing", "words": []}
+    ))
+    wav_path = tmp_path / "short.wav"
+    with wave.open(str(wav_path), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(16000)
+        out.writeframes(b"\0\0" * 16000)
+    with pytest.raises(RuntimeError, match="without timestamped words"):
+        asr._whistle(wav_path, config.WHISTLE_MODEL, None, "cpu", [])
+
+
+def test_whistle_does_not_create_a_redundant_short_tail_chunk(tmp_path, monkeypatch):
+    import sys
+    import wave
+
+    calls = []
+
+    def fake_transcribe(path, **kwargs):
+        calls.append(path)
+        return {"text": "last second", "words": [{"start": 28.2, "end": 28.7, "word": "last"}]}
+
+    monkeypatch.setitem(sys.modules, "needle", SimpleNamespace(transcribe=fake_transcribe))
+    wav_path = tmp_path / "short-tail.wav"
+    with wave.open(str(wav_path), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(16000)
+        out.writeframes(b"\0\0" * (29 * 16000))
+
+    result = asr._whistle(wav_path, config.WHISTLE_MODEL, None, "cpu", [])
+    assert len(calls) == 1
+    assert result["segments"][0]["words"] == [{"start": 28.2, "end": 28.7, "word": "last"}]
+
+
 def test_faster_whisper_segments_match_contract():
     segment = SimpleNamespace(start=1, end=3, text=" hello", words=[SimpleNamespace(start=1, end=2, word=" hello")])
     assert asr._faster_segment(segment) == {
