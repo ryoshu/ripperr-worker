@@ -1,0 +1,34 @@
+[project]
+name = "ripperr-worker"
+version = "0.1.0"
+description = "Model worker for ripperr: claims episodes, runs ASR and diarization, uploads results"
+requires-python = ">=3.11,<3.14"  # Senko needs Python below 3.14
+dependencies = []  # the protocol client is stdlib; the models come from an extra
+
+[project.optional-dependencies]
+apple = [
+    "mlx-whisper>=0.4",
+    # Same pinned commit ripperr was tested against; its output shape has
+    # changed between versions (see diarize.normalize_segments).
+    "senko @ git+https://github.com/narcotic-sh/senko.git@1bcb09041bfa170b4a5a4b0af92f66eff76204d5",
+]
+linux = [
+    "faster-whisper>=1.1",
+    "pyannote.audio>=3.3",
+]
+
+[project.scripts]
+ripperr-worker = "ripperr_worker.worker:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true  # for the pinned Senko commit
+
+[tool.hatch.build.targets.wheel]
+packages = ["ripperr_worker"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
