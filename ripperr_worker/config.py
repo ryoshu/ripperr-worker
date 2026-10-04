@@ -100,7 +100,8 @@ class Settings:
             "language": self.language,
         }
         if self.asr_backend == "whistle":
-            config["keywords"] = self.asr_keywords
+            # ripperr accepts only scalar config values (worker contract)
+            config["keywords"] = ", ".join(self.asr_keywords) or None
         return config
 
     def diarization_config(self) -> dict[str, object]:

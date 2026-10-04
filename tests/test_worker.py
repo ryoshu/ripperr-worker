@@ -36,8 +36,10 @@ def test_whistle_config_and_keywords(monkeypatch):
     assert settings.asr_config() == {
         "backend": "whistle", "runtime": config.runtime_version("cactus-needle"),
         "model": config.WHISTLE_MODEL, "device": "auto", "language": None,
-        "keywords": ["Ben Johnson", "Kalif Raymond", "Detroit Lions"],
+        "keywords": "Ben Johnson, Kalif Raymond, Detroit Lions",
     }
+    configs = (settings.asr_config(), settings.diarization_config())
+    assert all(v is None or isinstance(v, (str, int, float)) for c in configs for v in c.values())
 
 
 def test_whistle_chunks_and_stitches_overlaps(tmp_path, monkeypatch):
